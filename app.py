@@ -181,7 +181,7 @@ def main():
             <div style="position: fixed;
                         bottom: 10px;
                         left: 20px;
-                        font-size: 12px;
+                        font-size: 14px;
                         color: #999999;
                         opacity: 0.7;">
                 Made with ❤️ by <b>Shivain</b>
