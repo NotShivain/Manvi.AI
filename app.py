@@ -132,7 +132,7 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("🤖 Manvi.AI — Your Personal Research Paper Yapper")
+    st.header("🤖 Manvi.AI — Your Personal Research Paper/Article Yapper")
 
     # User Question Input
     user_question = st.text_input("Ask a question about your documents or articles:")
@@ -152,7 +152,7 @@ def main():
 
             if st.button("Process PDFs"):
                 if not pdf_docs:
-                    st.warning("Please upload at least one PDF before processing.")
+                    st.warning("Pdf daalna bholgye aap please upload a pdf bruh")
                 else:
                     with st.spinner("Processing your documents... ⏳"):
                         raw_text = get_pdf_text(pdf_docs)
@@ -165,7 +165,7 @@ def main():
             article_url = st.text_input("Enter the article URL:")
             if st.button("Process Article"):
                 if not article_url:
-                    st.warning("Please enter a valid article link.")
+                    st.warning("Link toh do yaar")
                 else:
                     with st.spinner("Fetching and processing article... 🌐"):
                         article_text = extract_text_from_link(article_url)
