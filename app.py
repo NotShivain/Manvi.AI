@@ -1,5 +1,6 @@
 import streamlit as st
-from dotenv import load_dotenv
+import requests
+from bs4 import BeautifulSoup
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
@@ -22,6 +23,25 @@ def get_pdf_text(pdf_docs):
             if page_text:
                 text += page_text
     return text
+
+
+# -----------------------------
+# Web Article Extraction
+# -----------------------------
+def extract_text_from_link(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Extract main readable content
+        paragraphs = [p.get_text() for p in soup.find_all("p")]
+        text = "\n".join(paragraphs)
+        return text.strip()
+
+    except Exception as e:
+        st.error(f"❌ Error fetching article: {e}")
+        return ""
 
 
 # -----------------------------
@@ -80,7 +100,7 @@ def get_conversation_chain(vectorstore):
 # -----------------------------
 def handle_userinput(user_question):
     if st.session_state.conversation is None:
-        st.warning("⚠️ Please upload and process your documents first!")
+        st.warning("⚠️ Please upload or process your source first!")
         return
 
     response = st.session_state.conversation({'question': user_question})
@@ -103,8 +123,7 @@ def handle_userinput(user_question):
 # Main Streamlit App
 # -----------------------------
 def main():
-    # load_dotenv()
-    st.set_page_config(page_title="Chat with multiple PDFs", page_icon=":books:")
+    st.set_page_config(page_title="Chat with PDFs or Articles", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
 
     # Initialize session state variables
@@ -113,51 +132,63 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    # App Header
     st.header("🤖 Manvi.AI — Your Personal Research Paper Yapper")
 
     # User Question Input
-    user_question = user_question = st.text_input("Ask a question about your documents:")
-
-
+    user_question = st.text_input("Ask a question about your documents or articles:")
     if user_question:
         handle_userinput(user_question)
 
-    # Sidebar for Document Upload
+    # Sidebar for Upload / Link
     with st.sidebar:
-        st.subheader("📄 Your Documents")
-        pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'",
-            accept_multiple_files=True
-        )
+        st.subheader("📄 Source Options")
+        option = st.radio("Choose input type:", ("Upload PDFs", "Add Article Link"))
 
-        if st.button("Process"):
-            if not pdf_docs:
-                st.warning("Please upload at least one PDF before processing.")
-            else:
-                with st.spinner("Processing your documents... ⏳"):
-                    # Extract and process text
-                    raw_text = get_pdf_text(pdf_docs)
-                    text_chunks = get_text_chunks(raw_text)
+        if option == "Upload PDFs":
+            pdf_docs = st.file_uploader(
+                "Upload your PDFs here and click on 'Process'",
+                accept_multiple_files=True
+            )
 
-                    # Create vectorstore and conversation chain
-                    vectorstore = get_vectorstore(text_chunks)
-                    st.session_state.conversation = get_conversation_chain(vectorstore)
+            if st.button("Process PDFs"):
+                if not pdf_docs:
+                    st.warning("Please upload at least one PDF before processing.")
+                else:
+                    with st.spinner("Processing your documents... ⏳"):
+                        raw_text = get_pdf_text(pdf_docs)
+                        text_chunks = get_text_chunks(raw_text)
+                        vectorstore = get_vectorstore(text_chunks)
+                        st.session_state.conversation = get_conversation_chain(vectorstore)
+                    st.success("✅ PDFs processed successfully!")
 
-                st.success("✅ Documents processed successfully! You can now ask questions.")
+        elif option == "Add Article Link":
+            article_url = st.text_input("Enter the article URL:")
+            if st.button("Process Article"):
+                if not article_url:
+                    st.warning("Please enter a valid article link.")
+                else:
+                    with st.spinner("Fetching and processing article... 🌐"):
+                        article_text = extract_text_from_link(article_url)
+                        if article_text:
+                            text_chunks = get_text_chunks(article_text)
+                            vectorstore = get_vectorstore(text_chunks)
+                            st.session_state.conversation = get_conversation_chain(vectorstore)
+                            st.success("✅ Article processed successfully!")
+
+        # Watermark
         st.markdown(
-    """
-    <div style="position: fixed;
-                bottom: 10px;
-                left: 20px;
-                font-size: 12px;
-                color: #999999;
-                opacity: 0.7;">
-        Made with ❤️ by <b>Shivain</b>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+            """
+            <div style="position: fixed;
+                        bottom: 10px;
+                        left: 20px;
+                        font-size: 12px;
+                        color: #999999;
+                        opacity: 0.7;">
+                Made with ❤️ by <b>Shivain</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 # -----------------------------
