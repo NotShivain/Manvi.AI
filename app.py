@@ -100,7 +100,7 @@ def get_conversation_chain(vectorstore):
 # -----------------------------
 def handle_userinput(user_question):
     if st.session_state.conversation is None:
-        st.warning("⚠️ Please upload or process your source first!")
+        st.warning("⚠️ Arre kuch do toh aise kis cheez pe yapping karu??")
         return
 
     response = st.session_state.conversation({'question': user_question})
