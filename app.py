@@ -10,10 +10,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 
-
-# -----------------------------
-# PDF Text Extraction
-# -----------------------------
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -25,28 +21,20 @@ def get_pdf_text(pdf_docs):
     return text
 
 
-# -----------------------------
-# Web Article Extraction
-# -----------------------------
 def extract_text_from_link(url):
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Extract main readable content
         paragraphs = [p.get_text() for p in soup.find_all("p")]
         text = "\n".join(paragraphs)
         return text.strip()
 
     except Exception as e:
-        st.error(f"❌ Error fetching article: {e}")
+        st.error(f"Error fetching article: {e}")
         return ""
 
-
-# -----------------------------
-# Split Text into Chunks
-# -----------------------------
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
         separator="\n",
@@ -57,10 +45,6 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-
-# -----------------------------
-# Create Vectorstore
-# -----------------------------
 def get_vectorstore(text_chunks):
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -68,10 +52,7 @@ def get_vectorstore(text_chunks):
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
-
-# -----------------------------
-# Build Conversational Chain
-# -----------------------------
+# Chat part (please do not change the model name)
 def get_conversation_chain(vectorstore):
     llm = ChatGroq(
         model="openai/gpt-oss-120b",
@@ -95,9 +76,6 @@ def get_conversation_chain(vectorstore):
     return conversation_chain
 
 
-# -----------------------------
-# Handle User Input
-# -----------------------------
 def handle_userinput(user_question):
     if st.session_state.conversation is None:
         st.warning("⚠️ Arre kuch do toh aise kis cheez pe yapping karu??")
@@ -119,14 +97,10 @@ def handle_userinput(user_question):
             )
 
 
-# -----------------------------
-# Main Streamlit App
-# -----------------------------
 def main():
     st.set_page_config(page_title="Chat with PDFs or Articles", page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
 
-    # Initialize session state variables
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
@@ -134,12 +108,10 @@ def main():
 
     st.header("🤖 Manvi.AI — Your Personal Research Paper/Article Yapper")
 
-    # User Question Input
     user_question = st.text_input("Ask a question about your documents or articles:")
     if user_question:
         handle_userinput(user_question)
 
-    # Sidebar for Upload / Link
     with st.sidebar:
         st.subheader("📄 Source Options")
         option = st.radio("Choose input type:", ("Upload PDFs", "Add Article Link"))
@@ -175,7 +147,6 @@ def main():
                             st.session_state.conversation = get_conversation_chain(vectorstore)
                             st.success("✅ Article processed successfully!")
 
-        # Watermark
         st.markdown(
             """
             <div style="position: fixed;
@@ -189,10 +160,5 @@ def main():
             """,
             unsafe_allow_html=True
         )
-
-
-# -----------------------------
-# Run the App
-# -----------------------------
 if __name__ == '__main__':
     main()
